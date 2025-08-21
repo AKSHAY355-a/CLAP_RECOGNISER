@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title> Listening Animation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto+Mono:wght@300;400;500&display=swap');
+    body { margin: 0; background: #111; overflow: hidden; }
+    canvas { display: block; position: fixed; inset: 0; z-index: 0; }
+    /* HUD for counter */
+    #hud {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #counter {
+      position: relative;
+      font-family: 'Orbitron', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-weight: 900;
+      font-size: clamp(36px, 8vw, 96px);
+      line-height: 1;
+      letter-spacing: 2px;
+      /* Fallback color for browsers that don't support background-clip */
+      color: rgba(255,255,255,0.1);
+      /* Layered gradients: narrow highlight sweep over Google gradient */
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%),
+        linear-gradient(90deg, #222 0%, #222 100%);
+      background-size: 125px 100%, 100% 100%;
+      background-position: 0% 50%, 0% 50%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 2s linear infinite, counterGlow 2.2s ease-in-out infinite;
+      text-shadow: 0 0 10px rgba(255,255,255,0.08);
+      will-change: transform;
+    }
+
+    /* Pop on clap */
+    #counter.pop { animation: counterPop 280ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes counterPop {
+      0% { transform: scale(1); text-shadow: 0 0 10px rgba(255,255,255,0.08); }
+      40% { transform: scale(1.25); text-shadow: 0 0 24px rgba(255,255,255,0.18); }
+      100% { transform: scale(1); text-shadow: 0 0 10px rgba(255,255,255,0.08); }
+    }
+    #clapText {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+      text-transform: uppercase;
+    }
+    #clapText svg { width: min(92vw, 1200px); height: auto; display: block; }
+    #clapText text { font-weight: 800; letter-spacing: 0.1em; font-size: 84px; font-family: inherit; }
+    #clapText .plain { position: absolute; inset: 0; opacity: 0; }
+
+    /* Smooth multi-layer stroke animation (inspired by SR article) */
+    #clapText .text {
+      fill: none;
+      stroke-width: 3;
+      stroke-linejoin: round;
+      stroke-dasharray: 70 330; /* dash, space */
+      stroke-dashoffset: 0;
+      animation: strokeMove 7s linear infinite;
+      vector-effect: non-scaling-stroke;
+    }
+    /* Five layers with staggered negative delays */
+    #clapText .text:nth-child(1) { stroke: #F2385A; animation-delay: -1.4s; }
+    #clapText .text:nth-child(2) { stroke: #F5A503; animation-delay: -2.8s; }
+    #clapText .text:nth-child(3) { stroke: #E9F1DF; animation-delay: -4.2s; }
+    #clapText .text:nth-child(4) { stroke: #56D9CD; animation-delay: -5.6s; }
+    #clapText .text:nth-child(5) { stroke: #3AA1BF; animation-delay: -7s; }
+
+    @keyframes strokeMove { 100% { stroke-dashoffset: -400; } }
+    /* Luminance shimmer for redirect message */
+    #clapText.luminance {
+      /* Luminance shimmer: white streak over dark base, clipped to text */
+      color: rgba(255,255,255,0.1);
+      /* Legacy prefixed gradients for wider compatibility, plus modern fallback */
+      background: -webkit-gradient(linear, left top, right top, from(#222), to(#222), color-stop(0.5, #fff));
+      background: -moz-linear-gradient(left, #222 0%, #fff 50%, #222 100%);
+      background: linear-gradient(90deg, #222 0%, #fff 50%, #222 100%);
+      -webkit-background-size: 125px 100%;
+      -moz-background-size: 125px 100%;
+      background-size: 125px 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-repeat: no-repeat;
+      background-position: 0 0;
+      background-color: #222; /* base behind clipped text */
+      animation: shimmerLuma 2s linear infinite, glowLuma 2.4s ease-in-out infinite;
+      text-shadow: none;
+    }
+    @keyframes glowLuma {
+      0%, 100% { filter: drop-shadow(0 0 0px rgba(255,255,255,0.0)) drop-shadow(0 0 0px rgba(255,255,255,0.0)); }
+      50%      { filter: drop-shadow(0 0 10px rgba(255,255,255,0.18)) drop-shadow(0 0 24px rgba(255,255,255,0.12)); }
+    }
+    /* Left-to-right streak for luminance text */
+    @-webkit-keyframes shimmerLuma { 0% { background-position: left top; } 100% { background-position: right top; } }
+    @-moz-keyframes shimmerLuma { 0% { background-position: left top; } 100% { background-position: right top; } }
+    @keyframes shimmerLuma { 0% { background-position: left top; } 100% { background-position: right top; } }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+    /* Pure CSS shimmer: sweep the first (highlight) layer left→right */
+    @keyframes shimmer {
+      0%   { background-position: -125px 50%, 0% 50%; }
+      100% { background-position: calc(100% + 125px) 50%, 100% 50%; }
+    }
+
+    /* Respect user motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      #counter {
+        animation: none;
+        background-position: 0% 50%, 0% 50%;
+        text-shadow: none;
+      }
+      #counter.pop { animation: none; }
+      #clapText.luminance { animation: none; filter: none; }
+    }
+    @keyframes counterGlow {
+      0%, 100% { text-shadow: 0 0 10px rgba(255,255,255,0.10), 0 0 0 rgba(0,0,0,0); }
+      50% { text-shadow: 0 0 16px rgba(255,255,255,0.22), 0 0 32px rgba(66,133,244,0.15); }
+    }
+  </style>
+ 
+</head>
+<body>
+<div id="clapText" role="img" aria-label="Clap Recogniser animated text">
+  <svg id="clapSvg" viewBox="0 0 1400 140" preserveAspectRatio="xMidYMid meet" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <text id="clapSvgText" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="text">CLAP RECOGNISER</text>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="text">CLAP RECOGNISER</text>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="text">CLAP RECOGNISER</text>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="text">CLAP RECOGNISER</text>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="text">CLAP RECOGNISER</text>
+  </svg>
+  <span id="clapPlain" class="plain" aria-live="polite">CLAP RECOGNISER</span>
+</div>
+<div id="hud">
+  <div id="counter">10</div>
+  
+</div>
+<script src="./script.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.min.js"></script>
+<script>
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  alpha: true,
+  powerPreference: "high-performance"
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // High DPI support
+document.body.appendChild(renderer.domElement);
+
+// Google News Color Palette
+const googleColors = [
+  0x174EA6, // Blue
+  0xA50E0E, // Red
+  0xE37400, // Orange
+  0x0D652D, // Green
+  0x4285F4, // Medium blue
+  0xEA4335, // Medium red
+  0xFBBC04, // Yellow
+  0x34A853, // Medium green
+  0xD2E3FC, // Light blue
+  0xFAD2CF, // Light red
+  0xFEEFC3, // Light yellow
+  0xCEEAD6, // Light green
+  0x9AA0A6, // Grey
+  0x202124  // Black
+];
+
+// Particle system
+let geometry = new THREE.BufferGeometry();
+let particleCount = 400;
+let positions = [];
+let colors = [];
+
+// Per-particle appearance
+let sizes = [];
+let phases = [];
+
+// Per-particle spherical coords and motion
+let phis = new Float32Array(particleCount);
+let thetas = new Float32Array(particleCount);
+let radii = new Float32Array(particleCount);
+let dPhi = new Float32Array(particleCount);
+let dTheta = new Float32Array(particleCount);
+for (let i = 0; i < particleCount; i++) {
+  let phi = Math.acos(2 * Math.random() - 1);
+  let theta = 2 * Math.PI * Math.random();
+  let radius = 1.5 + (Math.random() - 0.5) * 0.1; // slight variation
+  let x = radius * Math.sin(phi) * Math.cos(theta);
+  let y = radius * Math.sin(phi) * Math.sin(theta);
+  let z = radius * Math.cos(phi);
+  positions.push(x, y, z);
+
+  // store spherical and small angular velocities
+  phis[i] = phi;
+  thetas[i] = theta;
+  radii[i] = radius;
+  dPhi[i] = (Math.random() - 0.5) * 0.006;   // slow drift
+  dTheta[i] = (Math.random() - 0.5) * 0.012; // slow drift
+
+  // visual variations
+  sizes.push(0.85 + Math.random() * 0.6); // per-particle size multiplier
+  phases.push(Math.random() * Math.PI * 2); // twinkle phase
+
+  // Use Google News colors randomly
+  let googleColor = new THREE.Color(googleColors[Math.floor(Math.random() * googleColors.length)]);
+  colors.push(googleColor.r, googleColor.g, googleColor.b);
+}
+geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+geometry.setAttribute("size", new THREE.Float32BufferAttribute(sizes, 1));
+geometry.setAttribute("phase", new THREE.Float32BufferAttribute(phases, 1));
+
+// Shader-based crisp circular points (analytic anti-aliased discs)
+const BASE_POINT_SIZE = 2.9; // +10% larger than previous size
+const material = new THREE.ShaderMaterial({
+  vertexColors: true,
+  transparent: true,
+  depthTest: true,
+  blending: THREE.NormalBlending,
+  uniforms: {
+    uSize: { value: BASE_POINT_SIZE * renderer.getPixelRatio() },
+    uTime: { value: 0.0 },
+    uAudio: { value: 0.0 }
+  },
+  vertexShader: `
+    varying vec3 vColor;
+    varying float vPhase;
+    attribute float size;
+    attribute float phase;
+    uniform float uSize;
+    uniform float uTime;
+    uniform float uAudio;
+    void main() {
+      vColor = color;
+      vPhase = phase;
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      // Constant on-screen size with per-particle size and audio pulse
+      float tw = 0.9 + 0.2 * sin(uTime + phase);
+      float px = uSize * size * (1.0 + 0.35 * uAudio) * tw;
+      gl_PointSize = max(px, 1.0);
+      gl_Position = projectionMatrix * mvPosition;
+    }
+  `,
+  fragmentShader: `
+    precision highp float;
+    varying vec3 vColor;
+    varying float vPhase;
+    uniform float uTime;
+    // Use derivatives for smooth edges
+    #ifdef GL_OES_standard_derivatives
+    #extension GL_OES_standard_derivatives : enable
+    #endif
+    void main() {
+      // distance from center in [0, ~0.707]
+      vec2 p = gl_PointCoord - vec2(0.5);
+      float d = length(p);
+      // analytic anti-aliased edge using derivative width when available
+      float edge = 0.01;
+      #ifdef GL_OES_standard_derivatives
+        edge = fwidth(d);
+      #endif
+      float alpha = 1.0 - smoothstep(0.5, 0.5 + edge, d);
+      if (alpha <= 0.003) discard;
+      // subtle lighting and twinkle
+      float shade = 0.9 + 0.1 * (1.0 - smoothstep(0.0, 0.5, d));
+      float tw = 0.9 + 0.1 * sin(uTime * 1.5 + vPhase);
+      vec3 col = vColor * shade * tw;
+      gl_FragColor = vec4(col, alpha);
+    }
+  `,
+  extensions: { derivatives: true }
+});
+let points = new THREE.Points(geometry, material);
+scene.add(points);
+
+camera.position.z = 4;
+
+// Audio setup
+let audioContext, analyser, dataArray;
+navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  let source = audioContext.createMediaStreamSource(stream);
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256;
+  let bufferLength = analyser.frequencyBinCount;
+  dataArray = new Uint8Array(bufferLength);
+  source.connect(analyser);
+});
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Update particle positions for smooth motion on sphere
+  const pos = geometry.attributes.position.array;
+  const t = performance.now() * 0.001;
+  material.uniforms.uTime.value = t;
+  for (let i = 0, j = 0; i < particleCount; i++, j += 3) {
+    // evolve spherical angles
+    phis[i] += dPhi[i];
+    thetas[i] += dTheta[i];
+    // tiny breathing radius
+    const r = radii[i] + 0.05 * Math.sin(t * 0.6 + i * 0.37);
+    const sp = Math.sin(phis[i]);
+    pos[j]     = r * sp * Math.cos(thetas[i]);
+    pos[j + 1] = r * sp * Math.sin(thetas[i]);
+    pos[j + 2] = r * Math.cos(phis[i]);
+  }
+  geometry.attributes.position.needsUpdate = true;
+
+  if (analyser) {
+    analyser.getByteFrequencyData(dataArray);
+    let avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+    material.uniforms.uAudio.value = Math.min(avg / 200.0, 1.0);
+    let scale = 1 + avg / 300; // bigger when louder
+    points.scale.set(scale, scale, scale);
+
+    // Make them gently rotate like Google’s
+    points.rotation.y += 0.003;
+    points.rotation.x += 0.001;
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// Handle window resize while maintaining quality
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (material && material.uniforms && material.uniforms.uSize) {
+    material.uniforms.uSize.value = BASE_POINT_SIZE * renderer.getPixelRatio();
+  }
+});
+</script>
+</body>
+</html>
