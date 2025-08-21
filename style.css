@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto+Mono:wght@300;400;500&display=swap');
+
+/* Base */
+html, body { height: 100%; }
+body { margin: 0; background: #111; overflow: hidden; }
+
+/* Centered HUD (counter) */
+#hud {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Counter styling + shimmer */
+#counter {
+  position: relative;
+  font-family: 'Orbitron', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 900;
+  font-size: clamp(36px, 8vw, 96px);
+  line-height: 1;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.1); /* Fallback if clip unsupported */
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%),
+    linear-gradient(90deg, #222 0%, #222 100%);
+  background-size: 125px 100%, 100% 100%;
+  background-position: 0% 50%, 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite, counterGlow 2.2s ease-in-out infinite;
+  text-shadow: 0 0 10px rgba(255,255,255,0.08);
+  will-change: transform;
+}
+
+/* Pop on clap */
+#counter.pop { animation: counterPop 280ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes counterPop {
+  0% { transform: scale(1); text-shadow: 0 0 10px rgba(255,255,255,0.08); }
+  40% { transform: scale(1.25); text-shadow: 0 0 24px rgba(255,255,255,0.18); }
+  100% { transform: scale(1); text-shadow: 0 0 10px rgba(255,255,255,0.08); }
+}
+
+/* Bottom SVG banner */
+#clapText {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+#clapText svg { width: min(92vw, 1200px); height: auto; display: block; }
+#clapText text { font-weight: 800; letter-spacing: 0.1em; font-size: 84px; font-family: inherit; }
+#clapText .plain { position: absolute; inset: 0; opacity: 0; }
+
+/* Smooth multi-layer stroke animation */
+#clapText .text {
+  fill: none;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-dasharray: 70 330; /* dash, space */
+  stroke-dashoffset: 0;
+  animation: strokeMove 7s linear infinite; /* slowed slightly */
+  vector-effect: non-scaling-stroke;
+}
+/* Five layers with staggered negative delays */
+#clapText .text:nth-child(1) { stroke: #F2385A; animation-delay: -1.4s; }
+#clapText .text:nth-child(2) { stroke: #F5A503; animation-delay: -2.8s; }
+#clapText .text:nth-child(3) { stroke: #E9F1DF; animation-delay: -4.2s; }
+#clapText .text:nth-child(4) { stroke: #56D9CD; animation-delay: -5.6s; }
+#clapText .text:nth-child(5) { stroke: #3AA1BF; animation-delay: -7s; }
+
+/* Keyframes */
+@keyframes shimmer { 0% { background-position: -125px 50%, 0% 50%; } 100% { background-position: calc(100% + 125px) 50%, 100% 50%; } }
+@keyframes counterGlow { 0%,100% { text-shadow: 0 0 10px rgba(255,255,255,0.10), 0 0 0 rgba(0,0,0,0); } 50% { text-shadow: 0 0 16px rgba(255,255,255,0.22), 0 0 32px rgba(66,133,244,0.15); } }
+@keyframes strokeMove { 100% { stroke-dashoffset: -400; } }
+
+/* Motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  #counter { animation: none; background-position: 0% 50%, 0% 50%; text-shadow: none; }
+  #counter.pop { animation: none; }
+  #clapText .text { animation: none; }
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto+Mono:wght@300;400;500&display=swap');
+body { margin: 0; background: #111; overflow: hidden; }
+canvas { display: block; position: fixed; inset: 0; z-index: 0; }
+/* HUD for counter */
+#hud {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+#counter {
+  position: relative;
+  font-family: 'Orbitron', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 900;
+  font-size: clamp(36px, 8vw, 96px);
+  line-height: 1;
+  letter-spacing: 2px;
+  /* Fallback color for browsers that don't support background-clip */
+  color: rgba(255,255,255,0.1);
+  /* Layered gradients: narrow highlight sweep over Google gradient */
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%),
+    linear-gradient(90deg, #222 0%, #222 100%);
+  background-size: 125px 100%, 100% 100%;
+  background-position: 0% 50%, 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite, counterGlow 2.2s ease-in-out infinite;
+  text-shadow: 0 0 10px rgba(255,255,255,0.08);
+  will-change: transform;
+}
+
+/* Pop on clap */
+#counter.pop { animation: counterPop 280ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes counterPop {
+  0% { transform: scale(1); text-shadow: 0 0 10px rgba(255,255,255,0.08); }
+  40% { transform: scale(1.25); text-shadow: 0 0 24px rgba(255,255,255,0.18); }
+  100% { transform: scale(1); text-shadow: 0 0 10px rgba(255,255,255,0.08); }
+}
+#clapText {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+#clapText svg { width: min(92vw, 1200px); height: auto; display: block; }
+#clapText text { font-weight: 800; letter-spacing: 0.1em; font-size: 84px; font-family: inherit; }
+#clapText .plain { position: absolute; inset: 0; opacity: 0; }
+
+/* Smooth multi-layer stroke animation (inspired by SR article) */
+#clapText .text {
+  fill: none;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-dasharray: 70 330; /* dash, space */
+  stroke-dashoffset: 0;
+  animation: strokeMove 7s linear infinite;
+  vector-effect: non-scaling-stroke;
+}
+/* Five layers with staggered negative delays */
+#clapText .text:nth-child(1) { stroke: #F2385A; animation-delay: -1.4s; }
+#clapText .text:nth-child(2) { stroke: #F5A503; animation-delay: -2.8s; }
+#clapText .text:nth-child(3) { stroke: #E9F1DF; animation-delay: -4.2s; }
+#clapText .text:nth-child(4) { stroke: #56D9CD; animation-delay: -5.6s; }
+#clapText .text:nth-child(5) { stroke: #3AA1BF; animation-delay: -7s; }
+
+@keyframes strokeMove { 100% { stroke-dashoffset: -400; } }
+/* Luminance shimmer for redirect message */
+#clapText.luminance {
+  /* Luminance shimmer: white streak over dark base, clipped to text */
+  color: rgba(255,255,255,0.1);
+  /* Legacy prefixed gradients for wider compatibility, plus modern fallback */
+  background: -webkit-gradient(linear, left top, right top, from(#222), to(#222), color-stop(0.5, #fff));
+  background: -moz-linear-gradient(left, #222 0%, #fff 50%, #222 100%);
+  background: linear-gradient(90deg, #222 0%, #fff 50%, #222 100%);
+  -webkit-background-size: 125px 100%;
+  -moz-background-size: 125px 100%;
+  background-size: 125px 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-color: #222; /* base behind clipped text */
+  animation: shimmerLuma 2s linear infinite, glowLuma 2.4s ease-in-out infinite;
+  text-shadow: none;
+}
+@keyframes glowLuma {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(255,255,255,0.0)) drop-shadow(0 0 0px rgba(255,255,255,0.0)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(255,255,255,0.18)) drop-shadow(0 0 24px rgba(255,255,255,0.12)); }
+}
+/* Left-to-right streak for luminance text */
+@-webkit-keyframes shimmerLuma { 0% { background-position: left top; } 100% { background-position: right top; } }
+@-moz-keyframes shimmerLuma { 0% { background-position: left top; } 100% { background-position: right top; } }
+@keyframes shimmerLuma { 0% { background-position: left top; } 100% { background-position: right top; } }
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+/* Pure CSS shimmer: sweep the first (highlight) layer left→right */
+@keyframes shimmer {
+  0%   { background-position: -125px 50%, 0% 50%; }
+  100% { background-position: calc(100% + 125px) 50%, 100% 50%; }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  #counter {
+    animation: none;
+    background-position: 0% 50%, 0% 50%;
+    text-shadow: none;
+  }
+  #counter.pop { animation: none; }
+  #clapText.luminance { animation: none; filter: none; }
+}
+@keyframes counterGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,255,255,0.10), 0 0 0 rgba(0,0,0,0); }
+  50% { text-shadow: 0 0 16px rgba(255,255,255,0.22), 0 0 32px rgba(66,133,244,0.15); }
+}
