@@ -1,65 +1,104 @@
+const counterEl = document.getElementById("counter");
+const initialCount = 10;
+let count = initialCount;
+const threshold = 0.25; // sensitivity (clap threshold)
+let lastClap = 0;
+
+function updateCounterDisplay() {
+  counterEl.textContent = String(count);
+}
+
+function triggerCounterPop() {
+  counterEl.classList.remove('pop');
+  void counterEl.offsetWidth; // reflow to restart animation
+  counterEl.classList.add('pop');
+}
+
+updateCounterDisplay();
+
+// Unified audio pipeline shared by countdown and Hamming ball
+let audioContext, analyser, timeDomain;
+let latestRms = 0;
+let rmsSmoothed = 0; // exponential moving average for stability
+let visualLevel = 0; // normalized 0..1 for visuals
+
+// Ambient calibration to reduce oversensitivity in quiet rooms
+let calibrating = true;
+let noiseFloor = 0;
+let noiseFloorAccum = 0;
+let noiseFloorSamples = 0;
+const CALIBRATION_TARGET_SAMPLES = 60; // ~1s at 60fps
+
 navigator.mediaDevices.getUserMedia({ audio: true })
 .then(stream => {
-  const audioContext = new AudioContext();
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioContext.createMediaStreamSource(stream);
-  const analyser = audioContext.createAnalyser();
-
-  const counterEl = document.getElementById("counter");
-  const initialCount = 10;
-  let count = initialCount;
-  const threshold = 0.25; // sensitivity (adjust if needed)
-  let lastClap = 0;
-
-  // Connect analyser for potential future use
+  analyser = audioContext.createAnalyser();
   analyser.fftSize = 1024;
   source.connect(analyser);
-  const timeDomain = new Float32Array(analyser.fftSize);
-
-  function updateCounterDisplay() {
-    counterEl.textContent = String(count);
-  }
-
-  function triggerCounterPop() {
-    counterEl.classList.remove('pop');
-    void counterEl.offsetWidth; // reflow to restart animation
-    counterEl.classList.add('pop');
-  }
-
-  updateCounterDisplay();
-
-  function tick() {
-    requestAnimationFrame(tick);
-    analyser.getFloatTimeDomainData(timeDomain);
-    // Calculate volume (RMS)
-    let sum = 0;
-    for (let i = 0; i < timeDomain.length; i++) {
-      const v = timeDomain[i];
-      sum += v * v;
-    }
-    const rms = Math.sqrt(sum / timeDomain.length);
-    // Clap detection
-    if (rms > threshold) {
-      const now = Date.now();
-      if (now - lastClap > 500) {
-        if (count > 0) {
-          count -= 1;
-          updateCounterDisplay();
-          triggerCounterPop();
-        }
-        if (count === 0) {
-          setTimeout(() => {
-            window.location.href = "https://www.example.com";
-          }, 1200);
-        }
-        lastClap = now;
-      }
-    }
-  }
-  tick();
+  timeDomain = new Float32Array(analyser.fftSize);
 })
 .catch(err => {
   console.error("Mic access denied:", err);
 });
+
+function tick() {
+  requestAnimationFrame(tick);
+  if (!analyser || !timeDomain) return;
+  analyser.getFloatTimeDomainData(timeDomain);
+  // Calculate volume (RMS)
+  let sum = 0;
+  for (let i = 0; i < timeDomain.length; i++) {
+    const v = timeDomain[i];
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / timeDomain.length);
+  latestRms = rms;
+
+  // Gather noise floor during initial calibration window
+  if (calibrating && noiseFloorSamples < CALIBRATION_TARGET_SAMPLES) {
+    noiseFloorAccum += rms;
+    noiseFloorSamples += 1;
+    if (noiseFloorSamples === CALIBRATION_TARGET_SAMPLES) {
+      noiseFloor = noiseFloorAccum / noiseFloorSamples;
+      calibrating = false;
+    }
+  }
+
+  // Smooth RMS to avoid jittery visuals; quicker attack than release
+  if (rmsSmoothed === 0) {
+    rmsSmoothed = rms;
+  } else {
+    const alpha = 0.15; // 0..1 (higher = more responsive)
+    rmsSmoothed = rmsSmoothed * (1 - alpha) + rms * alpha;
+  }
+
+  // Derive a normalized visual level with a deadzone near the ambient floor
+  // Start mapping near the midpoint between floor and threshold
+  const floorRef = calibrating ? 0 : noiseFloor;
+  const visualStart = Math.min(floorRef + 0.35 * (threshold - floorRef), threshold * 0.65);
+  const denom = Math.max(threshold - visualStart, 1e-6);
+  const levelRaw = (rmsSmoothed - visualStart) / denom;
+  visualLevel = Math.max(0, Math.min(levelRaw, 1));
+  // Clap detection
+  if (rms > threshold) {
+    const now = Date.now();
+    if (now - lastClap > 500) {
+      if (count > 0) {
+        count -= 1;
+        updateCounterDisplay();
+        triggerCounterPop();
+      }
+      if (count === 0) {
+        setTimeout(() => {
+          window.location.href = "https://www.example.com";
+        }, 1200);
+      }
+      lastClap = now;
+    }
+  }
+}
+tick();
 
 let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -200,18 +239,6 @@ scene.add(points);
 
 camera.position.z = 4;
 
-// Audio setup
-let audioContext, analyser, dataArray;
-navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  let source = audioContext.createMediaStreamSource(stream);
-  analyser = audioContext.createAnalyser();
-  analyser.fftSize = 256;
-  let bufferLength = analyser.frequencyBinCount;
-  dataArray = new Uint8Array(bufferLength);
-  source.connect(analyser);
-});
-
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
@@ -234,10 +261,8 @@ function animate() {
   geometry.attributes.position.needsUpdate = true;
 
   if (analyser) {
-    analyser.getByteFrequencyData(dataArray);
-    let avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-    material.uniforms.uAudio.value = Math.min(avg / 200.0, 1.0);
-    let scale = 1 + avg / 300; // bigger when louder
+    material.uniforms.uAudio.value = visualLevel;
+    let scale = 1 + visualLevel * 0.4; // less sensitive scaling
     points.scale.set(scale, scale, scale);
 
     // Make them gently rotate like Google’s
