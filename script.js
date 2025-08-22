@@ -112,7 +112,7 @@ function tick() {
       }
       if (count === 0) {
         setTimeout(() => {
-          window.location.href = "http://apps.bbhegdecollege.com:5020/home";
+          window.location.href = "https://youtube.com/@ak_shay355?si=yZAYoUwnQb3jnzOy";
         }, 1200);
       }
       lastClap = now;
