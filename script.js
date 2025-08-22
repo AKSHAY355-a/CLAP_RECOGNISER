@@ -91,7 +91,7 @@ function tick() {
       }
       if (count === 0) {
         setTimeout(() => {
-          window.location.href = "https://www.example.com";
+          window.location.href = "http://apps.bbhegdecollege.com:5020/home";
         }, 1200);
       }
       lastClap = now;
