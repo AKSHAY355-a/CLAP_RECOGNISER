@@ -15,7 +15,7 @@ body { margin: 0; background: #111; overflow: hidden; }
   align-items: center;
   gap: 8px;
   z-index: 10;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 /* Counter styling + shimmer */
@@ -39,6 +39,7 @@ body { margin: 0; background: #111; overflow: hidden; }
   animation: shimmer 2s linear infinite, counterGlow 2.2s ease-in-out infinite;
   text-shadow: 0 0 10px rgba(255,255,255,0.08);
   will-change: transform;
+  pointer-events: none;
 }
 
 /* Make the test button clickable even when HUD ignores pointer events */
