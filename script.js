@@ -1,4 +1,5 @@
 const counterEl = document.getElementById("counter");
+const testBtn = document.getElementById("testBtn");
 const initialCount = 10;
 let count = initialCount;
 const threshold = 0.25; // sensitivity (clap threshold)
@@ -15,6 +16,26 @@ function triggerCounterPop() {
 }
 
 updateCounterDisplay();
+
+function decrementCounter() {
+  if (count > 0) {
+    count -= 1;
+    updateCounterDisplay();
+    triggerCounterPop();
+    if (count === 0) {
+      setTimeout(() => {
+        window.location.href = "https://www.example.com";
+      }, 1200);
+    }
+  }
+}
+
+if (testBtn) {
+  testBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    decrementCounter();
+  });
+}
 
 // Unified audio pipeline shared by countdown and Hamming ball
 let audioContext, analyser, timeDomain;

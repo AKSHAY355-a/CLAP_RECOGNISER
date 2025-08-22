@@ -41,6 +41,22 @@ body { margin: 0; background: #111; overflow: hidden; }
   will-change: transform;
 }
 
+/* Make the test button clickable even when HUD ignores pointer events */
+#testBtn {
+  pointer-events: auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(20,20,20,0.6);
+  color: #fff;
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+#testBtn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.5); }
+#testBtn:active { transform: translateY(0); }
+
 /* Pop on clap */
 #counter.pop { animation: counterPop 280ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes counterPop {
